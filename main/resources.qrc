@@ -1,0 +1,18 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/delete.png</file>
+        <file>images/dot.png</file>
+        <file>images/deleteall.png</file>
+        <file>images/add.png</file>
+        <file>images/deactivateall.png</file>
+        <file>images/reset.png</file>
+        <file>images/downarrow.png</file>
+        <file>images/downarrowsmall.png</file>
+        <file>images/world.png</file>
+        <file>images/en.png</file>
+        <file>images/it.png</file>
+        <file>images/sqlmate.ico</file>
+        <file>images/maximize.png</file>
+        <file>images/minimize.png</file>
+    </qresource>
+</RCC>
