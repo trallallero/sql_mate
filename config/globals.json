@@ -1,0 +1,22 @@
+{
+    "templateDirectory"             : "template",
+    "profilesDirectory"             : "profiles/",
+    "configDirectory"               : "config/",
+    "pluginsDirectory"              : "plugins/",
+    "filenameQuery"                 : "query.txt",
+    "filenameConditionFields"       : "condition_fields.json",
+    "filenameConfig"                : "config.json",
+    "filenameSchemas"               : "schemas.json",
+    "filenameTenantsQuery"          : "tenants_query.sql",
+    "filenameSelectedFields"        : "filtered_fields.txt",
+    "filenameStyleSheet"            : "stylesheets.txt",
+    "filenameConnections"           : "connections.json",
+    "filenameProfileReadMe"         : "README.md",
+    "applicationName"               : "SQLmate",
+    "newConnectionString"           : "New connection",
+    "valuesSeparator"               : "^",
+    "selectedFieldMilliseconds"     : 5000,
+    "sqlConnectTimeout"             : 5,
+    "numberOfGroups"                : 2,
+    "maxNumberOfConditionsPerGroup" : 8
+}

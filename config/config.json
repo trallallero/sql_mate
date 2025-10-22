@@ -1,0 +1,27 @@
+{
+    "BrainTreeGeometry": "AdnQywADAAAAAAHZAAAA3QAABr8AAAOCAAAB2QAAAN0AAAa/AAADggAAAAAAAAAAB4AAAAHZAAAA3QAABr8AAAOC",
+    "BrainTreeState": "normal",
+    "ConnectionsGeometry": "AdnQywADAAAAAAS8AAAAUwAAB4AAAAHAAAAEvAAAAFMAAAeAAAABwAAAAAAAAAAAB4AAAAS8AAAAUwAAB4AAAAHA",
+    "ConnectionsState": "normal",
+    "CredenzialiYINGeometry": "AdnQywADAAAAAAKXAAAAsQAABOYAAAMYAAAClwAAALEAAATmAAADGAAAAAAAAAAAB4AAAAKXAAAAsQAABOYAAAMY",
+    "CredenzialiYINState": "normal",
+    "DeleteQueriesViewerGeometry": "AdnQywADAAAAAAJvAAAA+QAABvcAAALcAAACbwAAAPkAAAb3AAAC3AAAAAAAAAAAB4AAAAJvAAAA+QAABvcAAALc",
+    "EliminaAnagraficaGeometry": "AdnQywADAAAAAAIkAAAAlQAABc4AAAL7AAACJAAAAJUAAAXOAAAC+wAAAAAAAAAAB4AAAAIkAAAAlQAABc4AAAL7",
+    "EliminaAnagraficaState": "normal",
+    "JsonViewerGeometry": "AdnQywADAAAAAAAAAAAAFAAAAsAAAAPjAAAAAAAAABQAAALAAAAD4wAAAAAAAAAAB4AAAAAAAAAAFAAAAsAAAAPj",
+    "JsonViewerState": "normal",
+    "MainWindowGeometry": "AdnQywADAAAAAAERAAAADQAABwAAAAP9AAABEgAAACwAAAb/AAAD/AAAAAAAAAAAB4AAAAESAAAALAAABv8AAAP8",
+    "MainWindowState": "normal",
+    "ProfilesGeometry": "AdnQywADAAAAAALGAAAAqwAAB2oAAAPcAAACxgAAAKsAAAdqAAAD3AAAAAAAAAAAB4AAAALGAAAAqwAAB2oAAAPc",
+    "ProfilesState": "normal",
+    "QueryViewerGeometry": "AdnQywADAAAAAAEOAAAATAAABVsAAAPeAAABDgAAAEwAAAVbAAAD3gAAAAAAAAAAB4AAAAEOAAAATAAABVsAAAPe",
+    "QueryViewerState": "normal",
+    "QuietanzamentoGeometry": "AdnQywADAAAAAAKVAAAA7AAABU8AAAMfAAAClQAAAOwAAAVPAAADHwAAAAAAAAAAB4AAAAKVAAAA7AAABU8AAAMf",
+    "QuietanzamentoState": "normal",
+    "SelectFromTableGeometry": "AdnQywADAAAAAAHZAAABEgAABbsAAAOzAAAB2QAAARIAAAW7AAADswAAAAAAAAAAB4AAAAHZAAABEgAABbsAAAOz",
+    "SelectFromTableState": "normal",
+    "defaultExport": {
+        "type": "Excel"
+    },
+    "defaultProfile": "yep-prod-platform-orders"
+}

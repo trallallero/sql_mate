@@ -1,0 +1,7 @@
+SELECT DISTINCT
+    '{tenant}' AS "Tenant"
+FROM
+	'{tenant}'.
+WHERE
+1 = 1
+{conditions}
