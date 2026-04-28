@@ -483,8 +483,7 @@ void Conditions::connectFieldObjects(ConditionFieldData& cfd)
             {
                 auto hasWords = text.split(QRegularExpression("[\\s\n\r]"), QString::SkipEmptyParts).count() > 1;
                 cfd.cbs["cbIn"]->setEnabled(hasWords);
-                if (hasWords == false)
-                    cfd.cbs["cbIn"]->setChecked(false);
+                cfd.cbs["cbIn"]->setChecked(hasWords);
             }
             if(cfd.cbs["cbNull"])
             {

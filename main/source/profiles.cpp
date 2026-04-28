@@ -8,6 +8,7 @@
 
 #include <QDir>
 #include <QDirIterator>
+#include <QList>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QTextStream>
@@ -143,7 +144,10 @@ QMap<int, QString> Profiles::getProfiles()
     {
         directories.next();
         auto profile = directories.fileName();
-        if(profile != Globals::templateProfileName())
+        auto path    = QApplication::applicationDirPath() + "/" + Globals::profilesDirectory() + profile + "/" + Globals::filenameTenantsQuery();
+        if(profile != Globals::templateProfileName() &&
+           profile != Globals::defaultDirectory   () &&
+           QFileInfo::exists(path))
             profiles[index++] = profile;
     }
     return profiles;
@@ -193,24 +197,28 @@ QString Profiles::getFirstProfile()
 
 void Profiles::updateProfileConnection(QString oldConnectionName, QString newConnectionName)
 {
+    QStringList filenames { Globals::filenameProfileDefaultConfig() };
     auto profiles = getProfiles();
     for(const auto& profile : profiles.toStdMap())
     {
         auto fileName = Globals::filenameProfileConfig(profile.second);
         if (QFileInfo::exists(fileName))
+            filenames.append(fileName);
+    }
+
+    for (auto& fileName : filenames)
+    {
+        QFile file(fileName);
+        file.open(QIODevice::ReadOnly | QIODevice::Text);
+        auto jsonConfigDoc = QJsonDocument::fromJson(file.readAll());
+        auto jsonConfigObj = jsonConfigDoc.object();
+        if (jsonConfigObj.keys().contains("connection") && jsonConfigObj["connection"].toString() == oldConnectionName)
         {
-            QFile file(fileName);
-            file.open(QIODevice::ReadOnly | QIODevice::Text);
-            auto jsonConfigDoc = QJsonDocument::fromJson(file.readAll());
-            auto jsonConfigObj = jsonConfigDoc.object();
-            if (jsonConfigObj.keys().contains("connection") && jsonConfigObj["connection"].toString() == oldConnectionName)
-            {
-                jsonConfigObj["connection"] = newConnectionName;
-                file.close();
-                file.open(QIODevice::WriteOnly | QIODevice::Text);
-                file.write(QJsonDocument(jsonConfigObj).toJson());
-                file.close();
-            }
+            jsonConfigObj["connection"] = newConnectionName;
+            file.close();
+            file.open(QIODevice::WriteOnly | QIODevice::Text);
+            file.write(QJsonDocument(jsonConfigObj).toJson());
+            file.close();
         }
     }
 }

@@ -31,23 +31,16 @@ private slots:
     void pushButtonClose_clicked();
     void pushButtonExport_clicked();
     void pushButtonSwitchView_clicked();
-    void sqlResult(SqlResultType result);
+    void sqlResult(SqlResultType result, int rowsAffected);
 
 private:
     Ui::SelectFromTable* ui                {nullptr};
     bool                 m_uiSetup         {false};
     SqlResultType        m_sqlResult;
-    ViewMode             m_currentViewMode { ViewMode::VM_HORIZONTAL };
 
     void connectObjects();
 
-    void populateTableWidget          ();
-    void populateTableWidgetVertical  ();
-    void populateTableWidgetHorizontal();
-
-    void resetTableWidget();
-
-    static QString subscriptionQuery;
+    static QString selectQuery;
 };
 
 #endif // SELECTFROMTABLE_H

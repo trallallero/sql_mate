@@ -30,7 +30,6 @@ PluginsHandler::PluginsHandler(QWidget* parent)
     })
     , m_setGetQueryMethodRequest([this](QString tenant, QString& query) {
         emit PluginsHandler::setGetQueryMethodRequest(tenant, query);
-        auto x = query;
     })
 {
     m_shadowMenuWidget = new ContextMenuWidget(&m_contextMenu);

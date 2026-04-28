@@ -1,3 +1,9 @@
+#include <QApplication>
+#include <QDebug>
+#include <QScreen>
+#include <QTimer>
+#include <QWindow>
+
 #include "contextmenuwidget.h"
 
 #include "globals.h"
@@ -24,5 +30,18 @@ void ContextMenuWidget::popup()
 {
     move(QCursor::pos());
     m_contextMenu->setVisible(true);
+    QTimer::singleShot(0, this, [this]() {
+        QScreen* screen = this->window()->windowHandle()->screen();
+        QRect screenGeom = screen->availableGeometry();
+        QPoint newPos = this->pos();
+
+        if (this->y() + this->height() > screenGeom.bottom())
+            newPos.setY(screenGeom.bottom() - this->height());
+
+        if (this->x() + this->width() > screenGeom.right())
+            newPos.setX(screenGeom.right() - this->width());
+
+        this->move(newPos);
+    });
     show();
 }

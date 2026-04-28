@@ -17,4 +17,4 @@ else:win32:CONFIG(debug, debug|release): LIBS += -L$$PROJECT_ROOT_DIRECTORY/debu
 win32:CONFIG(release, debug|release):    DESTDIR = ../../release/plugins/addtocondition
 else:win32:CONFIG(debug, debug|release): DESTDIR = ../../debug/plugins/addtocondition
 
-QMAKE_PRE_LINK += $$QMAKE_COPY $$system_path($$quote($$PWD/$$OTHER_FILES)) $$system_path($$quote($$DESTDIR) $$escape_expand(\\n\\t))
+QMAKE_PRE_LINK += $$QMAKE_COPY $$system_path($$quote($$PWD/addToConditionMenuIcon.png)) $$system_path($$quote($$DESTDIR) $$escape_expand(\\n\\t))

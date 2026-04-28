@@ -242,6 +242,23 @@ QToolButton#toolButtonCopy {
   margin-right: 5px;
 }
 
+QToolButton#toolButtonConnections {
+  font-weight: 500;
+  background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop:0 #a188ff, stop:0.5 #aabbaa, stop:1 #a188ff);
+  color: #000000;
+  border-radius: 3px;
+  border: 1px solid #5555ff;
+}
+
+QToolButton#toolButtonSwitchView {
+  font-weight: 500;
+  background-color: transparent;
+  color: #0000FF;
+  border-radius: 0px;
+  border: 0px solid #5555ff;
+  margin-left: 2px;
+}
+
 /* -------------------------------- */
 
 QPushButton {
@@ -282,38 +299,8 @@ QPushButton[objectName^="pushButtonZero"] {
   border: 0px;
 }
 
-QPushButton[conditionSearchButton="idle"] {
-  font-weight: 600;
-  background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop:0 #446644, stop:0.5 #77ee77, stop:1 #446644);
-  color: #000000;
-  border-radius: 5px;
-  border: 2px solid #005500;
-  padding: 5px 15px;
-}
-
-QPushButton[conditionSearchButton="searching"] {
-  font-weight: 600;
-  background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop:0 #AA8888, stop:0.5 #FF0000, stop:1 #AA8888);
-  color: #000000;
-  border-radius: 5px;
-  border: 2px solid #550000;
-  padding: 5px 15px;
-}
-
-QPushButton:hover[conditionSearchButton="idle"] {
-  background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop:0 #226622, stop:0.5 #99ff99, stop:1 #226622);
-  border: 2px solid #339933;
-}
-
-QPushButton:hover[conditionSearchButton="searching"] {
-  background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop:0 #bb6666, stop:0.5 #ff4444, stop:1 #bb6666);
-  border: 2px solid #ff5555;
-}
-
-QPushButton:!enabled#pushButtonSearch {
-  background-color: #aaaaaa;
-  color: #888888;
-  border: 1px solid #bbbbbb;
+QPushButton#pushButtonZeroSearch {
+  background-color: transparent;
 }
 
 /* -------------------------------- */
@@ -326,6 +313,10 @@ QGroupBox {
   border-right: 1px solid #cccccc; /* #685a4d;*/
   font-size: 14px;
   border-radius: 5px;
+}
+
+QGroupBox#groupBoxZeroInnerSearch {
+  background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop:0 #446644, stop:0.5 #77ee77, stop:1 #446644);
 }
 
 QGroupBox::title {
@@ -416,6 +407,37 @@ QGroupBox::title#groupBoxSchema {
   background-color: transparent;
   font-size: 6pt;
   font-weight: bold;
+}
+
+QGroupBox[conditionSearchButton="idle"] {
+  font-weight: 600;
+  background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop:0 #446644, stop:0.5 #77ee77, stop:1 #446644);
+  color: #000000;
+  border-radius: 5px;
+  border: 2px solid #005500;
+}
+
+QGroupBox[conditionSearchButton="searching"] {
+  font-weight: 600;
+  background-color: #FF0000;
+  color: #000000;
+  border-radius: 5px;
+  border: 2px solid #550000;
+}
+
+QGroupBox:hover[conditionSearchButton="idle"] {
+  background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop:0 #226622, stop:0.5 #99ff99, stop:1 #226622);
+  border: 2px solid #339933;
+  padding: 50px 50px;
+}
+
+QGroupBox:hover[conditionSearchButton="searching"] {
+  background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop:0 #bb6666, stop:0.5 #ff4444, stop:1 #bb6666);
+  border: 2px solid #ff5555;
+}
+
+QGroupBox:!enabled#groupBoxZeroInnerSearch {
+  background-color: #aaaaaa;
 }
 
 /* -------------------------------- */
@@ -571,25 +593,16 @@ QCheckBox::indicator:hover {
   border-color: #d09f75;
 }
 
-QCheckBox#checkBoxZeroDefaultProfile, #checkBoxZeroDefaultSchema{
+QCheckBox[objectName^="checkBoxZero"] {
   margin-left: 5px;
 }
 
-QCheckBox#checkBoxZeroDefaultProfile::indicator:checked { 
+QCheckBox[objectName^="checkBoxZero"]::indicator:checked { 
   background-color: #0000ff; 
   border-color: #666666;
 }
 
-QCheckBox#checkBoxZeroDefaultProfile::indicator:hover {
-  border-color: #009999;
-}
-
-QCheckBox#checkBoxZeroDefaultSchema::indicator:checked { 
-  background-color: #0000ff; 
-  border-color: #666666;
-}
-
-QCheckBox#checkBoxZeroDefaultSchema::indicator:hover {
+QCheckBox[objectName^="checkBoxZero"]::indicator:hover {
   border-color: #009999;
 }
 

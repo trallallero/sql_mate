@@ -113,5 +113,6 @@ QMAKE_PRE_LINK += $$QMAKE_COPY $$system_path($$quote($$PROJECT_ROOT_DIRECTORY/co
 QMAKE_PRE_LINK += $$QMAKE_COPY $$system_path($$quote($$PROJECT_ROOT_DIRECTORY/config/stylesheets.txt))      $$system_path($$quote($$DESTDIR/config/stylesheets.txt)     $$escape_expand(\\n\\t))
 
 QMAKE_PRE_LINK += $$QMAKE_COPY $$system_path($$quote($$PROJECT_ROOT_DIRECTORY/translations/SqlMate_en.qm))  $$system_path($$quote($$DESTDIR/SqlMate_en.qm)              $$escape_expand(\\n\\t))
+QMAKE_PRE_LINK += $$QMAKE_COPY $$system_path($$quote($$PROJECT_ROOT_DIRECTORY/config/stylesheets.txt)) $$system_path($$quote($$DESTDIR/config) $$escape_expand(\\n\\t))
 
 message($$QMAKE_POST_LINK)

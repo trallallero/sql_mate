@@ -20,19 +20,18 @@ public:
     TableWidget(QWidget* parent = nullptr);
     ~TableWidget();
 
+    void scrollTo(const QModelIndex& index, ScrollHint hint) override;
+
     void resetWidget();
 
     void filterResultFields(QStringList selectedFields);
 
     void populate(SqlResultType sqlResult, QStringList selectedFields);
 
+    ViewMode viewMode() const { return m_currentViewMode; }
+
     void setViewMode      (ViewMode vm)               { m_currentViewMode = vm; }
     void setTenantQueryMap(const TenantQueryMap& map) { m_tenantQueryMap = map; }
-
-    QStringList getValuesByHeaderClick  (QPoint pos) const;
-    QStringList getValuesByClick        (QPoint pos) const;
-    QString     getTitle                (QPoint pos) const;
-    QString     getTenant               (QString title, int row) const;
 
 protected:
     virtual bool eventFilter(QObject* watched, QEvent* event) override;
@@ -45,6 +44,11 @@ signals:
 private:
     ViewMode       m_currentViewMode { ViewMode::VM_HORIZONTAL };
     TenantQueryMap m_tenantQueryMap  {};
+
+    QStringList getValuesByHeaderClick  (QPoint pos) const;
+    QStringList getValuesByClick        (QPoint pos) const;
+    QString     getTitle                (QPoint pos) const;
+    QString     getTenant               (QString title, int row) const;
 
     void populateHorizontal(SqlResultType sqlResult, QStringList selectedFields);
     void populateVertical  (SqlResultType sqlResult, QStringList selectedFields);

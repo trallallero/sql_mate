@@ -15,11 +15,20 @@ TableWidget::TableWidget(QWidget* parent)
 
     connect(this              , &QWidget::customContextMenuRequested, this, &TableWidget::customContextMenuRequested);
     connect(horizontalHeader(), &QWidget::customContextMenuRequested, this, &TableWidget::header_customContextMenuRequested);
+
+    setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
 }
 
 TableWidget::~TableWidget()
 {
     resetWidget();
+}
+
+void TableWidget::scrollTo(const QModelIndex &index, ScrollHint hint)
+{
+    if (hint == QAbstractItemView::EnsureVisible)
+        return;
+    QTableWidget::scrollTo(index, hint);
 }
 
 void TableWidget::resetWidget()
@@ -72,7 +81,6 @@ void TableWidget::filterResultFields(QStringList selectedFields)
     emit visibleItemsCount(visibleItems);
 
     QApplication::restoreOverrideCursor();
-
 }
 
 void TableWidget::populate(SqlResultType sqlResult, QStringList selectedFields)
@@ -134,21 +142,71 @@ QString TableWidget::getTitle(QPoint pos) const
     return title;
 }
 
+QString TableWidget::getTenant(QString title, int row) const
+{
+    if (m_currentViewMode == ViewMode::VM_HORIZONTAL)
+    {
+        for(int col = 0; col < columnCount(); ++col)
+        {
+            if (horizontalHeaderItem(col)->text().toLower() == "tenant")
+            {
+                auto tenant = item(row, col)->text();
+                return tenant;
+            }
+        }
+    }
+    else
+    {
+        QStringList list {"tenant", title.toLower()};
+        list.sort(); // we need to know if the tenant row is before or after the selected one
+        if (list[0] == "tenant") // tenant is before
+        {
+            int rowCopy = row;
+            while(rowCopy >= 0)
+            {
+                if (item(rowCopy, 0)->text().toLower() == "tenant")
+                {
+                    auto tenant = item(rowCopy, 1)->text();
+                    return tenant;
+                }
+                --rowCopy;
+            }
+        }
+        else // tenant is after
+        {
+            int rowCopy = row;
+            while(rowCopy < rowCount())
+            {
+                if (item(rowCopy, 0)->text().toLower() == "tenant")
+                {
+                    auto tenant = item(rowCopy, 1)->text();
+                    return tenant;
+                }
+                ++rowCopy;
+            }
+        }
+    }
+    return {};
+}
+
 void TableWidget::populateHorizontal(SqlResultType sqlResult, QStringList selectedFields)
 {
     auto colTotal = sqlResult.at(0).count();
     auto record = sqlResult.at(0);
     setColumnCount(colTotal);
 
+    int index = 0;
     for(auto& record : sqlResult)
     {
         insertRow(rowCount());
+        auto alternateColor = Globals::getAlternateColor(index);
 
         int col = 0;
         for(auto i = record.begin(); i != record.end(); ++i)
         {
             auto itemValue = new QTableWidgetItem(i.value());
             itemValue->setFlags(itemValue->flags() ^ Qt::ItemIsEditable);
+            itemValue->setBackgroundColor(alternateColor);
             setItem(rowCount() - 1, col++, itemValue);
         }
     }
@@ -158,7 +216,7 @@ void TableWidget::populateHorizontal(SqlResultType sqlResult, QStringList select
     for(auto i = record.begin(); i != record.end(); ++i, ++col)
     {
         header.append(i.key());
-        if (selectedFields.contains(i.key()) == false)
+        if (selectedFields.count() > 0 && selectedFields.contains(i.key()) == false)
             hideColumn(col);
     }
     setHorizontalHeaderLabels(header);
@@ -166,16 +224,16 @@ void TableWidget::populateHorizontal(SqlResultType sqlResult, QStringList select
 
 void TableWidget::populateVertical(SqlResultType sqlResult, QStringList selectedFields)
 {
+    QFont boldFont;
+    boldFont.setBold(true);
+
     setColumnCount(2);
     setHorizontalHeaderLabels({tr("Campo"), tr("Valore")});
 
-    int index = 1;
+    int index = 0;
     for(auto& record : sqlResult)
-    { // TODO: move constants somewhere else
-        auto alternateColor = index % 2 == 0 ?
-                    QColor::fromRgb(160, 160, 160) :
-                    QColor::fromRgb(210, 210, 210);
-        ++index;
+    {
+        auto alternateColor = Globals::getAlternateColor(index);
 
         for(auto i = record.begin(); i != record.end(); ++i)
         {
@@ -184,6 +242,7 @@ void TableWidget::populateVertical(SqlResultType sqlResult, QStringList selected
             auto itemKey = new QTableWidgetItem(i.key());
             itemKey->setFlags(itemKey->flags() ^ Qt::ItemIsEditable);
             itemKey->setBackgroundColor(alternateColor);
+            itemKey->setFont(boldFont);
             setItem(rowCount() - 1, 0, itemKey);
 
             auto itemValue = new QTableWidgetItem(i.value());
@@ -191,7 +250,7 @@ void TableWidget::populateVertical(SqlResultType sqlResult, QStringList selected
             itemValue->setBackgroundColor(alternateColor);
             setItem(rowCount() - 1, 1, itemValue);
 
-            if (selectedFields.contains(i.key()) == false)
+            if (selectedFields.count() > 0 && selectedFields.contains(i.key()) == false)
                 hideRow(rowCount() - 1);
         }
     }
@@ -238,55 +297,6 @@ void TableWidget::header_customContextMenuRequested(const QPoint& pos)
                     {"value"     , value}
                 }
     );
-}
-
-QString TableWidget::getTenant(QString title, int row) const
-{
-    title = title.toLower();
-
-    if (m_currentViewMode == ViewMode::VM_HORIZONTAL)
-    {
-        for(int col = 0; col < columnCount(); ++col)
-        {
-            if (horizontalHeaderItem(col)->text().toLower() == "tenant")
-            {
-                auto tenant = item(row, col)->text();
-                return tenant;
-            }
-        }
-    }
-    else
-    {
-        QStringList list {"tenant", title};
-        list.sort(); // we need to know if the tenant row is before or after the selected one
-        if (list[0] == "tenant") // tenant is before
-        {
-            int rowCopy = row;
-            while(rowCopy >= 0)
-            {
-                if (item(rowCopy, 0)->text().toLower() == "tenant")
-                {
-                    auto tenant = item(rowCopy, 1)->text();
-                    return tenant;
-                }
-                --rowCopy;
-            }
-        }
-        else // tenant is after
-        {
-            int rowCopy = row;
-            while(rowCopy < rowCount())
-            {
-                if (item(rowCopy, 0)->text().toLower() == "tenant")
-                {
-                    auto tenant = item(rowCopy, 1)->text();
-                    return tenant;
-                }
-                ++rowCopy;
-            }
-        }
-    }
-    return {};
 }
 
 bool TableWidget::eventFilter(QObject* watched, QEvent* event)

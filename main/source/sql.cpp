@@ -1,4 +1,5 @@
 #include <QFile>
+#include <QTimer>
 
 #include "sql.h"
 #include "globals.h"
@@ -8,7 +9,7 @@ Sql::Sql()
 }
 
 QString Sql::initalize(ConnectionValues cv)
-{
+{  
     QFile file_tenants(Globals::filenameProfileTenantsQuery());
     file_tenants.open(QIODevice::ReadOnly | QIODevice::Text);
     m_tenantsQuery = file_tenants.readAll();
@@ -25,11 +26,23 @@ QString Sql::initalize(ConnectionValues cv)
 
     m_isMultiDb = cv.isMultiDb;
 
+    m_currentConnectionName = cv.name;
+
     m_db.setConnectOptions(QString("connect_timeout=%1").arg(Globals::sqlConnectTimeout()));
 
     if (m_db.open() == false)
         return m_db.lastError().databaseText();
     return {};
+}
+
+bool Sql::updateConnection(QString oldName, QString newName)
+{
+    if (oldName == m_currentConnectionName)
+    {
+        initalize(Connections::getConnectionValues(newName));
+        return true;
+    }
+    return false;
 }
 
 QList<QString> Sql::getTenants()
@@ -42,23 +55,36 @@ QList<QString> Sql::getTenants()
     return tenants;
 }
 
-void Sql::getResult(QStringList tenants, QString conditions, QString limit)
+void Sql::getResult(QStringList tenants, QString conditions, QString limit, bool clear)
 {
+    if(clear)
+    {
+        m_model_H.clear();
+        m_model_V.clear();
+    }
+
     createConnectionsForMultiDb(tenants);
 
     auto query = m_query;
     if(limit.isEmpty() == false)
         query.append(QString(" LIMIT %1").arg(limit));
 
-    m_workerThread = new WorkerThread(qobject_cast<QObject*>(this), m_tenantDbMap, conditions, m_db, query);
+    m_workerThread = new WorkerThread(
+                qobject_cast<QObject*>(this),
+                m_tenantDbMap,
+                conditions,
+                m_db,
+                query,
+                m_lastMode == ViewMode::VM_HORIZONTAL ? m_model_H : m_model_V,
+                m_lastMode
+    );
 
-    connect(m_workerThread, &WorkerThread::resultReady, this, [this](const SqlResultType& result, const TenantQueryMap& tenantQueryMap){
+    connect(m_workerThread, &WorkerThread::resultReady, this, [this](const TenantQueryMap& tenantQueryMap){
         if(m_fetching)
-        {
             m_fetching = false;
-            emit resultReady(result, tenantQueryMap);
-        }
+        emit resultReady(tenantQueryMap);
     });
+
     connect(m_workerThread, &WorkerThread::queryExecuted, this, [this](const QString query){
         emit queryExecuted(query);
     });
@@ -69,27 +95,42 @@ void Sql::getResult(QStringList tenants, QString conditions, QString limit)
         m_fetching = false;
         emit sqlError(error);
     });
-    connect(m_workerThread, &WorkerThread::sqlAborted, this, [this](const SqlResultType& result){
+    connect(m_workerThread, &WorkerThread::sqlAborted, this, [this](){
         m_fetching = false;
-        emit sqlAborted(result);
+        emit sqlAborted();
     });
+    connect(m_workerThread, &WorkerThread::columnCount, this, [this](int colCount){
+        m_columnCount = colCount;
+    }, Qt::QueuedConnection);
     connect(m_workerThread, &WorkerThread::finished, m_workerThread, &QObject::deleteLater);
+
     m_fetching = true;
     m_workerThread->start();
 }
 
-void Sql::getResultForPlugins(QString tenant, QString query, QObject* sender)
+void Sql::getResultForPlugins(QString tenant, QString query, QObject* sender, bool fallbackWhenError)
 {
-    disconnect(this, SIGNAL(sqlResult(SqlResultType)), sender, SLOT(sqlResult(SqlResultType)));
-    connect   (this, SIGNAL(sqlResult(SqlResultType)), sender, SLOT(sqlResult(SqlResultType)));
+    disconnect(this, SIGNAL(sqlResult(SqlResultType,int)), sender, SLOT(sqlResult(SqlResultType,int)));
+    connect   (this, SIGNAL(sqlResult(SqlResultType,int)), sender, SLOT(sqlResult(SqlResultType,int)));
 
     createConnectionsForMultiDb({tenant});
 
-    auto queryStr = query.replace("{tenant}", tenant);
+    auto queryCopy = query;
+    auto queryStr = m_isMultiDb || fallbackWhenError
+        ? queryCopy.replace("{tenant}.", "")
+        : queryCopy.replace("{tenant}", tenant);
+
+    qDebug() << queryStr;
+
     auto result   = m_tenantDbMap[tenant].exec(queryStr);
 
     if (result.isValid() == false && result.lastError().databaseText().isEmpty() == false)
     {
+        if (fallbackWhenError == false)
+        {
+            return getResultForPlugins(tenant, query, sender, true);
+        }
+        qDebug() << result.lastError().databaseText();
         emit sqlError(result.lastError().databaseText());
         return;
     }
@@ -107,7 +148,14 @@ void Sql::getResultForPlugins(QString tenant, QString query, QObject* sender)
         }
         records.append(record_map);
     }
-    emit sqlResult(records);
+    emit sqlResult(records, result.numRowsAffected());
+    if (fallbackWhenError)
+        QTimer::singleShot(1000, this, [this](){
+            emit sqlError(
+                tr("\nATTENZIONE: Ha fallito e poi funzionato dopo aver forzato la connessione come 'Multi database'!"
+                   "\nSi raccomanda di impostare la connessione in maniera corretta!")
+            );
+        });
 }
 
 void Sql::setQuery()

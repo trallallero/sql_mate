@@ -6,6 +6,7 @@
 #include <QDebug>
 
 QString  Globals::m_templateDirectory;
+QString  Globals::m_defaultDirectory;
 QString  Globals::m_profilesDirectory;
 QString  Globals::m_configDirectory;
 QString  Globals::m_pluginsDirectory;
@@ -35,6 +36,7 @@ void Globals::initialize()
     auto jsonObj = getJsonObject("config/globals.json");
 
     m_templateDirectory             = jsonObj["templateDirectory"            ].toString();
+    m_defaultDirectory              = jsonObj["defaultDirectory"             ].toString();
     m_profilesDirectory             = jsonObj["profilesDirectory"            ].toString();
     m_configDirectory               = jsonObj["configDirectory"              ].toString();
     m_pluginsDirectory              = jsonObj["pluginsDirectory"             ].toString();
@@ -83,9 +85,9 @@ QString Globals::getProfileSetToDefault()
 void Globals::setSchemaToDefault(const QString schema)
 {
     auto configObj = Globals::profileSchemasObject();
-    if (configObj["default"] != schema)
+    if (configObj[Globals::defaultDirectory()] != schema)
     {
-        configObj["default"] = schema;
+        configObj[Globals::defaultDirectory()] = schema;
         QFile fileConfig(Globals::filenameProfileSchemas());
         fileConfig.open(QIODevice::WriteOnly);
         fileConfig.write(QJsonDocument(configObj).toJson());
@@ -96,7 +98,7 @@ void Globals::setSchemaToDefault(const QString schema)
 QString Globals::getSchemaSetToDefault()
 {
     auto configObj = Globals::profileSchemasObject();
-    return configObj["default"].toString();
+    return configObj[Globals::defaultDirectory()].toString();
 }
 
 QString Globals::filenameProfileConfig()
@@ -187,7 +189,7 @@ QPair<QString, QString> Globals::getTableNameAndAcronym(QString title, QString t
     {
         if (tableAcronym.isEmpty())
         {
-            if (line.contains(title))
+            if (line.contains("\"" + title + "\""))
             {
                 QRegularExpression re("^.*[()\\s,](\\w+\\.[\"]*\\w+[\"]*).*$");
                 QRegularExpressionMatch match = re.match(line);
@@ -266,6 +268,15 @@ Dialog* Globals::createShadowedGui(QDialog* parent, bool isPlugin)
     });
 
     return dialog;
+}
+
+QColor Globals::getAlternateColor(int& index, bool increaseIndex)
+{
+    if (increaseIndex)
+        ++index;
+    return index % 2 == 0
+        ? QColor::fromRgb(160, 160, 160)
+        : QColor::fromRgb(210, 210, 210);
 }
 
 QJsonObject Globals::getJsonObject(QString file)

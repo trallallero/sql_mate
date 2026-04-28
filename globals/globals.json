@@ -1,5 +1,6 @@
 {
-    "templateDirectory"             : "template",
+    "templateDirectory"             : "template/",
+    "defaultDirectory"              : "default/",
     "profilesDirectory"             : "profiles/",
     "configDirectory"               : "config/",
     "pluginsDirectory"              : "plugins/",

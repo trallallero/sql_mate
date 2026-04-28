@@ -19,6 +19,7 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -39,7 +40,7 @@ protected:
 private slots:
     void checkBoxZeroDefaultProfile_toggled(bool checked);
 
-    void on_pushButtonSearch_clicked();
+    void on_pushButtonZeroSearch_clicked();
     void on_pushButtonFF_clicked();
     void on_pushButtonExportResult_clicked();
     void on_pushButtonViewQuery_clicked();
@@ -47,7 +48,6 @@ private slots:
     void on_pushButtonZeroProfiles_clicked();
     void on_pushButtonZeroSchemas_clicked();
     void on_pushButtonZeroSaveProfile_clicked();
-    void on_pushButtonSwitchView_clicked();
     void on_pushButtonZeroSelectProfile_clicked();
     void on_pushButtonZeroSelectSchema_clicked();
     void on_pushButtonZeroSaveSchema_clicked();
@@ -55,6 +55,7 @@ private slots:
     void on_checkBoxZeroDefaultSchema_toggled(bool checked);
     void on_comboBoxConnection_currentIndexChanged(const QString& arg1);
     void on_comboBoxLimitSearch_currentIndexChanged(int);
+    void on_toolButtonSwitchView_clicked();
     void on_toolButtonReset_clicked();
     void on_toolButtonDeactivate_clicked();
     void on_toolButtonAddCondition_clicked();
@@ -68,7 +69,7 @@ private slots:
     void addCondition(QJsonObject jo);
     void showConnections();
     void showAbout();
-    void sqlResultReady(SqlResultType result);
+    void sqlResultReady();
     void pluginExportResult(QWidget* parent, QTableWidget* tw, ViewMode vm);
     void setProfileQueryLimit();
     void queryByTenant(QString tenant, QString& query);

@@ -47,7 +47,7 @@ void JsonViewer::execute()
         setLanguageChanged(false);
     }
 
-    m_data = getData()["value"].toString().toLocal8Bit();
+    m_data = getData()["value"].toString().toUtf8();
 
     JsonModel* model = new JsonModel(this);
     ui->treeView->setModel(model);
@@ -61,8 +61,8 @@ void JsonViewer::execute()
 
 bool JsonViewer::isEnabled()
 {
-    auto value = getData()["value"].toString();
-    return QJsonDocument::fromJson(value.toLocal8Bit()).isNull() == false;
+    auto value = getData()["value"].toString().toUtf8();
+    return QJsonDocument::fromJson(value).isNull() == false;
 }
 
 void JsonViewer::pushButtonClose_clicked()

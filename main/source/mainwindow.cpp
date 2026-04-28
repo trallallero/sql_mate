@@ -59,6 +59,7 @@ MainWindow::MainWindow(QWidget* parent)
     qRegisterMetaType<SqlResultType>();
     qRegisterMetaType<TenantQueryMap>();
     qRegisterMetaType<Qt::DropAction>();
+    qRegisterMetaType<QVector<int>>();
 
     Globals::initialize();
 
@@ -82,6 +83,9 @@ MainWindow::MainWindow(QWidget* parent)
     connectObjects();
 
     Globals::setOnConfigurationSaved(&MainWindow::onConfigurationSaved);
+
+    ui->tableWidgetResult->setVisible(false);
+    ui->tableView->show();
 }
 
 MainWindow::~MainWindow()
@@ -159,11 +163,11 @@ void MainWindow::dropEvent(QDropEvent*)
     m_currentDropGroupBox = nullptr;
 }
 
-void MainWindow::on_pushButtonSearch_clicked()
+void MainWindow::on_pushButtonZeroSearch_clicked()
 {
     if (m_sql.isFetching())
     {
-        ui->pushButtonSearch->setEnabled(false);
+        ui->groupBoxZeroInnerSearch->setEnabled(false);
         m_sql.abort();
         showVolatileMessage(tr("Sto annullando l'operazione..."));
         return;
@@ -187,29 +191,30 @@ void MainWindow::on_pushButtonSearch_clicked()
     const auto enabledTenants = getEnabledTenants();
     QApplication::setOverrideCursor(Qt::WaitCursor);
     enableWidgetObjects(false, enabledTenants.count() > 1);
-    m_sql.getResult(enabledTenants, conditions, ui->comboBoxLimitSearch->currentText());
+    m_sql.getResult(enabledTenants, conditions, ui->comboBoxLimitSearch->currentText(), ui->checkBoxZeroSearch->isChecked() == false);
 }
 
 void MainWindow::tenant_checked(bool toggled)
 {
     if (toggled)
     {
-        ui->pushButtonSearch->setEnabled(true);
+        ui->groupBoxZeroInnerSearch->setEnabled(true);
         return;
     }
     for(auto& cb : m_tenantsCheckBoxes)
     {
         if (cb->isChecked())
         {
-            ui->pushButtonSearch->setEnabled(true);
+            ui->groupBoxZeroInnerSearch->setEnabled(true);
             return;
         }
     }
-    ui->pushButtonSearch->setEnabled(false);
+    ui->groupBoxZeroInnerSearch->setEnabled(false);
 }
 
 void MainWindow::applyProfile()
 {
+    resetTableWidget();
     m_sql.setQuery();
     m_conditions.addConditionFields({ui->groupBoxSearch, ui->groupBoxSearch2});
 
@@ -258,16 +263,14 @@ void MainWindow::setProfileConnection(bool force)
 
 void MainWindow::setProfile(QString profile, bool isDefault, bool force)
 {
-    if (profile.isEmpty() || (Globals::currentProfile() == profile && force == false))
-    {
-        resetTableWidget();
+    if (Globals::currentProfile() == profile && force == false)
         return;
-    }
 
     QApplication::setOverrideCursor(Qt::WaitCursor);
 
     if (Profiles::profileExists(profile) == false)
         profile = Profiles::getFirstProfile(); // fallback in case of non existing profile
+
 
     // bk current if new profile fails
     auto currentProfile = Globals::currentProfile();
@@ -337,6 +340,8 @@ void MainWindow::showConnections()
             ui->comboBoxConnection->setItemData(index, newConnectionName, Qt::DisplayRole);
         m_pluginsHandler.setSqlDBs(Connections::getConnectionNames());
         Profiles::updateProfileConnection(oldConnectionName, newConnectionName);
+        if (m_sql.updateConnection(oldConnectionName, newConnectionName))
+            m_pluginsHandler.setCurrentSqlDB(newConnectionName, m_sql.sqlDB());
     });
     connect(&c, &Connections::showMessage, this, [this](const QString msg){ showVolatileMessage(msg); });
     c.exec();
@@ -347,11 +352,13 @@ void MainWindow::showAbout()
     About(this).exec();
 }
 
-void MainWindow::sqlResultReady(SqlResultType result)
+void MainWindow::sqlResultReady()
 {
-    m_sqlResult = result;
-    ui->tableWidgetResult->setTenantQueryMap(m_tenantQueryMap);
-    ui->tableWidgetResult->populate(m_sqlResult, m_selectedFields);
+    if (ui->checkBoxZeroSearch->isChecked() == false)
+        m_sqlResult.clear();
+
+    ui->tableView->setModel(&m_sql.model(m_currentViewMode));
+    ui->tableView->setTenantQueryMap(m_tenantQueryMap);
     ui->labelResultValue->setText(QString::number(m_sqlResult.count()).rightJustified(3, ' '));
     enableWidgetObjects(true, false);
     QApplication::restoreOverrideCursor();
@@ -371,6 +378,7 @@ void MainWindow::setProfileQueryLimit() //  TODO: rename this method cos does mo
     auto vm = jsonObj["viewMode"].toString();
     m_currentViewMode = vm == "v" ? VM_VERTICAL : VM_HORIZONTAL;
     ui->tableWidgetResult->setViewMode(m_currentViewMode);
+    ui->tableView        ->setViewMode(m_currentViewMode);
     setViewModeTextToButton();
 }
 
@@ -397,14 +405,13 @@ void MainWindow::createMenu()
     langGroup->setExclusive(true);
 
     connect(langGroup, &QActionGroup::triggered, this, [this](QAction* action){
-        qDebug() << "Translator";
         switchTranslator(m_translator, QString("SqlMate_%1.qm").arg(action->text()));
     });
 }
 
 void MainWindow::setupPlugins()
 {
-    connect(&m_pluginsHandler, &PluginsHandler::searchMethodRequest          , this, &MainWindow::on_pushButtonSearch_clicked);
+    connect(&m_pluginsHandler, &PluginsHandler::searchMethodRequest          , this, &MainWindow::on_pushButtonZeroSearch_clicked);
     connect(&m_pluginsHandler, &PluginsHandler::messageMethodRequest         , this, [this](const QString msg){ showVolatileMessage(msg); });
     connect(&m_pluginsHandler, &PluginsHandler::addConditionMethodRequest    , this, &MainWindow::addCondition);
     connect(&m_pluginsHandler, &PluginsHandler::setExportResultMethodRequest , this, &MainWindow::pluginExportResult);
@@ -431,23 +438,31 @@ void MainWindow::setupPlugins()
 
 void MainWindow::enableWidgetObjects(bool enable, bool canBeCanceled)
 {
-    ui->groupBoxTenants   ->setEnabled(enable);
-    ui->groupBoxMainSearch->setEnabled(enable);
-    ui->groupBoxResult    ->setEnabled(enable);
-    ui->pushButtonSearch  ->setEnabled(true);
+    ui->groupBoxTenants        ->setEnabled(enable);
+    ui->groupBoxMainSearch     ->setEnabled(enable);
+    ui->groupBoxResult         ->setEnabled(enable);
 
-    if (enable) // TODO: move constants somewhere else
+    if (enable)
     {
-        ui->pushButtonSearch->setText(tr("Cerca"));
-        ui->pushButtonSearch->setProperty("conditionSearchButton", "idle");
+        ui->pushButtonZeroSearch->setText(tr("Cerca"));
+        ui->groupBoxZeroInnerSearch->setEnabled(true);
+        ui->groupBoxZeroInnerSearch->setProperty("conditionSearchButton", "idle");
     }
     else if (canBeCanceled)
     {
-        ui->pushButtonSearch->setText(tr("Annulla"));
-        ui->pushButtonSearch->setProperty("conditionSearchButton", "searching");
+        ui->pushButtonZeroSearch->setText(tr("Annulla"));
+        ui->groupBoxZeroInnerSearch->setEnabled(true);
+        ui->groupBoxZeroInnerSearch->setProperty("conditionSearchButton", "searching");
+        ui->pushButtonZeroSearch->setCursor(Qt::PointingHandCursor);
     }
-    ui->pushButtonSearch->style()->unpolish(ui->pushButtonSearch);
-    ui->pushButtonSearch->style()->polish  (ui->pushButtonSearch);
+    else
+    {
+        ui->groupBoxZeroInnerSearch->setEnabled(false);
+        return;
+    }
+
+    ui->groupBoxZeroInnerSearch->style()->unpolish(ui->groupBoxZeroInnerSearch);
+    ui->groupBoxZeroInnerSearch->style()->polish  (ui->groupBoxZeroInnerSearch);
 }
 
 void MainWindow::finishSetup()
@@ -462,10 +477,10 @@ void MainWindow::finishSetup()
     ui->verticalLayoutSearch1->addStretch(3);
     ui->verticalLayoutSearch2->addStretch(3);
 
-    ui->pushButtonSearch->setText(tr("Cerca"));
-    ui->pushButtonSearch->setProperty("conditionSearchButton", "idle");
-    ui->pushButtonSearch->style()->unpolish(ui->pushButtonSearch);
-    ui->pushButtonSearch->style()->polish  (ui->pushButtonSearch);
+    ui->pushButtonZeroSearch->setText(tr("Cerca"));
+    ui->groupBoxZeroInnerSearch->setProperty("conditionSearchButton", "idle");
+    ui->groupBoxZeroInnerSearch->style()->unpolish(ui->groupBoxZeroInnerSearch);
+    ui->groupBoxZeroInnerSearch->style()->polish  (ui->groupBoxZeroInnerSearch);
     on_tableWidgetResult_itemSelectionChanged();
     ui->labelResultValue->setText(QString::number(0).rightJustified(3, ' '));
 }
@@ -515,9 +530,9 @@ void MainWindow::switchTranslator(QTranslator& translator, const QString& filena
 void MainWindow::setViewModeTextToButton()
 {
     if (m_currentViewMode == ViewMode::VM_HORIZONTAL)
-        ui->pushButtonSwitchView->setText(tr("Vista Verticale"));
+        ui->toolButtonSwitchView->setText(tr("Verticale"));
     else
-        ui->pushButtonSwitchView->setText(tr("Vista Orizzontale"));
+        ui->toolButtonSwitchView->setText(tr("Orizzontale"));
 }
 
 QJsonObject MainWindow::getProfileSchemaJsonValues() const
@@ -557,6 +572,16 @@ void MainWindow::connectObjects()
         m_pluginsHandler.getContextMenuWidget()->popup();
     });
 
+    connect(ui->tableView, &TableView::contextMenuRequest
+            , this, [this](QJsonObject o){
+        o["conditionNames" ] = QJsonArray::fromStringList(m_conditions.getConditionNames(true, false));
+        o["profile"        ] = Globals::currentProfile();
+        o["fieldsFreeLeft" ] = Globals::maxNumberOfConditionsPerGroup() - m_conditions.getHandler()->getFieldsCountPerPage(0);
+        o["fieldsFreeRight"] = Globals::maxNumberOfConditionsPerGroup() - m_conditions.getHandler()->getFieldsCountPerPage(1);
+        m_pluginsHandler.setData(o);
+        m_pluginsHandler.getContextMenuWidget()->popup();
+    });
+
     connect(&m_conditions, &Conditions::checkboxDeleted, this, [this](QObject* cb){
         if (cb == m_lastFocusWidget)
             m_lastFocusWidget = nullptr;
@@ -568,7 +593,7 @@ void MainWindow::connectObjects()
     });
 
     connect(&m_conditions, &Conditions::lineEditEnterPressed, this, [this](){
-        on_pushButtonSearch_clicked();
+        on_pushButtonZeroSearch_clicked();
     });
 
     connect(&m_conditions, &Conditions::maxNumberOfConditionsReached, this, [this](){
@@ -604,10 +629,10 @@ void MainWindow::connectObjects()
         m_currentQuery = query;
     });
 
-    connect(&m_sql, &Sql::resultReady, this, [this](const SqlResultType& result, const TenantQueryMap& tenantQueryMap){
+    connect(&m_sql, &Sql::resultReady, this, [this](const TenantQueryMap& tenantQueryMap){
         VolatileMessage::stop();
         m_tenantQueryMap = tenantQueryMap;
-        sqlResultReady(result);
+        sqlResultReady();
     });
 
     connect(&m_sql, &Sql::currentTenant, this, [this](const QString msg){ showVolatileMessage(msg, true); });
@@ -615,14 +640,14 @@ void MainWindow::connectObjects()
     connect(&m_sql, &Sql::sqlError, this, [this](const QString error){
         VolatileMessage::stop();
         m_connectedToDb = false;
-        sqlResultReady({});
+        sqlResultReady();
         QApplication::restoreOverrideCursor();
         QMessageBox::critical(this, tr("ERRORE"), error, QMessageBox::StandardButton::Ok);
     });
 
-    connect(&m_sql, &Sql::sqlAborted, this, [this](const SqlResultType& result){
+    connect(&m_sql, &Sql::sqlAborted, this, [this](){
         VolatileMessage::stop();
-        sqlResultReady({result});
+        sqlResultReady();
         QApplication::restoreOverrideCursor();
         showVolatileMessage(tr("Operazione annullata!"));
     });
@@ -755,7 +780,7 @@ void MainWindow::on_pushButtonZeroSchemas_clicked()
     p.exec();
 }
 
-void MainWindow::on_pushButtonSwitchView_clicked()
+void MainWindow::on_toolButtonSwitchView_clicked()
 {    
     if (m_currentViewMode == ViewMode::VM_VERTICAL)
         m_currentViewMode = ViewMode::VM_HORIZONTAL;
@@ -764,9 +789,11 @@ void MainWindow::on_pushButtonSwitchView_clicked()
 
     setViewModeTextToButton();
     ui->tableWidgetResult->setViewMode(m_currentViewMode);
+    ui->tableView        ->setViewMode(m_currentViewMode);
 
     ui->tableWidgetResult->populate(m_sqlResult, m_selectedFields);
     ui->labelResultValue->setText(QString::number(m_sqlResult.count()).rightJustified(3, ' '));
+    ui->tableView->setModel(&m_sql.model(m_currentViewMode));
 }
 
 void MainWindow::on_toolButtonReset_clicked()
@@ -816,7 +843,7 @@ void MainWindow::on_comboBoxConnection_currentIndexChanged(const QString& arg1)
     if (error.isEmpty() == false)
     {
         m_connectedToDb = false;
-        ui->pushButtonSearch->setEnabled(false);
+        ui->groupBoxZeroInnerSearch->setEnabled(false);
         QMessageBox::critical(this, tr("ERRORE"), error, QMessageBox::StandardButton::Ok);
     }
     else
@@ -824,7 +851,7 @@ void MainWindow::on_comboBoxConnection_currentIndexChanged(const QString& arg1)
         m_connectedToDb = true;
         if(m_showConnectionMessage)
             showVolatileMessage(QString(tr("Connessione a '%1' avvenuta con successo").arg(arg1)));
-        ui->pushButtonSearch->setEnabled(true);
+        ui->groupBoxZeroInnerSearch->setEnabled(true);
         m_pluginsHandler.setCurrentSqlDB(ui->comboBoxConnection->currentText(), m_sql.sqlDB());
     }
 }

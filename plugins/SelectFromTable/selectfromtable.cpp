@@ -12,7 +12,7 @@
 
 #include "sql.h"
 
-QString SelectFromTable::subscriptionQuery = "SELECT * FROM {tenant}.%1 %2 WHERE %3 = %4";
+QString SelectFromTable::selectQuery = "SELECT * FROM {tenant}.%1 %2 WHERE %3 = %4";
 
 SelectFromTable::SelectFromTable()
     : ui(new Ui::SelectFromTable)
@@ -33,6 +33,7 @@ void SelectFromTable::execute()
         ui->setupUi(dialog);
 
         ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+        ui->tableWidget->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft);
 
         new WidgetSizeTool(this, ui->groupBoxZeroMainButtons, true);
 
@@ -50,7 +51,7 @@ void SelectFromTable::execute()
     auto stylesheet = getData()["stylesheet"].toString();
     QWidget::setStyleSheet(stylesheet);
 
-    resetTableWidget();
+    ui->tableWidget->resetWidget();
 
     ui->labelTableNameValue->setText({});
     ui->labelCountValue    ->setText({});
@@ -67,102 +68,13 @@ void SelectFromTable::execute()
     auto field = allConditions[title];
     if (!field.isEmpty())
     {
-        auto query = subscriptionQuery.arg(table, acronym, field, "'" + value + "'");
+        auto query = selectQuery.arg(table, acronym, field, "'" + value + "'");
         QTimer::singleShot(0, this, [this, tenant, query](){
             m_sqlQueryRequestMethod(tenant, query, reinterpret_cast<QObject*>(this));
         });
     }
 
     exec();
-}
-
-void SelectFromTable::populateTableWidget()
-{
-    resetTableWidget();
-
-    if (m_sqlResult.count() <= 0)
-        return;
-
-    QApplication::setOverrideCursor(Qt::WaitCursor);
-
-    if (m_currentViewMode == ViewMode::VM_HORIZONTAL)
-        populateTableWidgetHorizontal();
-    else
-        populateTableWidgetVertical();
-
-    ui->pushButtonExport->setEnabled(ui->tableWidget->rowCount() > 0);
-
-    QApplication::restoreOverrideCursor();
-}
-
-void SelectFromTable::populateTableWidgetVertical()
-{
-    ui->tableWidget->setColumnCount(2);
-    ui->tableWidget->setHorizontalHeaderLabels({tr("Campo"), tr("Valore")});
-
-    int index = 1;
-    for(auto& record : m_sqlResult)
-    { // TODO: move constants somewhere else
-        auto alternateColor = index % 2 == 0 ?
-                    QColor::fromRgb(160, 160, 160) :
-                    QColor::fromRgb(210, 210, 210);
-        ++index;
-
-        for(auto i = record.begin(); i != record.end(); ++i)
-        {
-            ui->tableWidget->insertRow(ui->tableWidget->rowCount());
-
-            auto itemKey = new QTableWidgetItem(i.key());
-            itemKey->setFlags(itemKey->flags() ^ Qt::ItemIsEditable);
-            itemKey->setBackgroundColor(alternateColor);
-            ui->tableWidget->setItem(ui->tableWidget->rowCount() - 1, 0, itemKey);
-
-            auto itemValue = new QTableWidgetItem(i.value());
-            itemValue->setFlags(itemValue->flags() ^ Qt::ItemIsEditable);
-            itemValue->setBackgroundColor(alternateColor);
-            ui->tableWidget->setItem(ui->tableWidget->rowCount() - 1, 1, itemValue);
-        }
-    }
-}
-
-void SelectFromTable::populateTableWidgetHorizontal()
-{
-    auto colTotal = m_sqlResult.at(0).count();
-    ui->tableWidget->setColumnCount(colTotal);
-
-    for(auto& record : m_sqlResult)
-    {
-        ui->tableWidget->insertRow(ui->tableWidget->rowCount());
-
-        int col = 0;
-        for(auto i = record.begin(); i != record.end(); ++i)
-        {
-            auto itemValue = new QTableWidgetItem(i.value());
-            itemValue->setFlags(itemValue->flags() ^ Qt::ItemIsEditable);
-            ui->tableWidget->setItem(ui->tableWidget->rowCount() - 1, col++, itemValue);
-        }
-    }
-
-    QStringList header;
-    int col = 0;
-    auto record = m_sqlResult.at(0);
-    for(auto i = record.begin(); i != record.end(); ++i, ++col)
-        header.append(i.key());
-    ui->tableWidget->setHorizontalHeaderLabels(header);
-}
-
-void SelectFromTable::resetTableWidget()
-{
-    while (ui->tableWidget->rowCount() > 0)
-        ui->tableWidget->removeRow(0);
-
-    ui->tableWidget->clear();
-    ui->tableWidget->clearContents();
-    ui->tableWidget->setRowCount(0);
-    ui->tableWidget->setColumnCount(0);
-    ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-
-    QApplication::processEvents();
 }
 
 bool SelectFromTable::isEnabled()
@@ -185,21 +97,24 @@ void SelectFromTable::pushButtonExport_clicked()
 
 void SelectFromTable::pushButtonSwitchView_clicked()
 {
-    if (m_currentViewMode == ViewMode::VM_VERTICAL)
+    if (ui->tableWidget->viewMode() == ViewMode::VM_VERTICAL)
     {
-        m_currentViewMode = ViewMode::VM_HORIZONTAL;
-        ui->pushButtonSwitchView->setText("Vista Verticale");
+        ui->tableWidget->setViewMode(ViewMode::VM_HORIZONTAL);
+        ui->pushButtonSwitchView->setText(tr("Vista Verticale"));
     }
     else
     {
-        m_currentViewMode = ViewMode::VM_VERTICAL;
-        ui->pushButtonSwitchView->setText("Vista Orizzontale");
+        ui->tableWidget->setViewMode(ViewMode::VM_VERTICAL);
+        ui->pushButtonSwitchView->setText(tr("Vista Orizzontale"));
     }
-    populateTableWidget();
+
+    ui->tableWidget->populate(m_sqlResult, {});
 }
 
-void SelectFromTable::sqlResult(SqlResultType result)
+void SelectFromTable::sqlResult(SqlResultType result, int rowsAffected)
 {
+    Q_UNUSED(rowsAffected)
+
     m_sqlResult = result;
     if (m_sqlResult.isEmpty())
     {
@@ -211,7 +126,7 @@ void SelectFromTable::sqlResult(SqlResultType result)
         ui->labelTableNameValue->setText(getData()["tableName"].toString());
         ui->labelCountValue    ->setText(QString::number(m_sqlResult.size()));
 
-        populateTableWidget();
+        ui->tableWidget->populate(result, {});
     }
 }
 
